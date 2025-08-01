@@ -28,18 +28,18 @@ export default function RootLayout({
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased
-          h-[100vh]
-          flex flex-col justify-center items-center
+          min-h-screen
+          flex flex-col justify-start items-center
           bg-purple-900
         `}
       >
         
         <header className=" 
-              w-[50vw] pb-3
+              w-[90vw] pb-3
               flex flex-row justify-between items-center
               text-white 
         ">
-          <h1 className="text-4xl font-bold">Municípios</h1>
+          <h1 className="text-4xl font-bold">Horários</h1>
           <nav className="flex flex-row gap-4">
             <Link  className="hover:underline" href="/">Home</Link>
             <Link className="hover:underline" href="/municipalities">Municípios</Link>
@@ -48,7 +48,8 @@ export default function RootLayout({
           </nav>
         </header>
 
-        <main className="h-[70vh] w-[50vw] p-5 rounded-xl bg-white">{children}</main>
+        <main className="min-h-[70vh] w-[90vw] p-5 rounded-xl bg-white">{children}</main>
+
         <footer className="text-sm text-white pt-4">2024, DEISI, Lusófona</footer>
 
       </body>
