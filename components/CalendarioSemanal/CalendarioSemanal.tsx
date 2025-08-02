@@ -9,6 +9,16 @@ type ClassType = {
   name: string;
 };
 
+interface Disciplina {
+  id: number;
+  nome: string;
+  docentes: {
+    nome: string;
+    horas_teoricas: number;
+    horas_praticas: number;
+  }[];
+}
+
 interface Slot {
   id: number;
   day: number;
@@ -20,6 +30,8 @@ interface Slot {
   room: string;
   color: string;
   type: string;
+  disciplina_id?: number;  // Adicione como opcional
+  docente_id?: string;     // Adicione como opcional
 }
 
 interface SlotForm {
@@ -35,7 +47,7 @@ interface SlotForm {
   type: string;
 }
 
-const WeeklyCalendar = () => {
+const WeeklyCalendar = ({ horario_id }: { horario_id: number }) => {
 
   const [classCount, setClassCount] = useState(3);
   const [classPrefix, setClassPrefix] = useState("Turma");
@@ -57,6 +69,11 @@ const WeeklyCalendar = () => {
     color: '#3a87ad',
     type: 'Teórica'
   });
+
+  const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
+  const [docentesDisciplina, setDocentesDisciplina] = useState<{nome: string}[]>([]);
+  const [loadingDisciplinas, setLoadingDisciplinas] = useState(false);
+
 
   const HOUR_HEIGHT = 60; // Aumentei para melhor visualização
   const MINUTE_HEIGHT = HOUR_HEIGHT / 60;
@@ -195,8 +212,16 @@ const WeeklyCalendar = () => {
     // Garantir que o ID seja sempre número
     const newId = currentSlot.id ?? Date.now();
     
+    
+    const disciplinaSelecionada = disciplinas.find(
+      d => d.nome === currentSlot.subject
+    );
+    const docenteSelecionado = docentesDisciplina.find(
+      d => d.nome === currentSlot.teacher
+    );
+
     const slotData: Slot = {
-      id: newId,
+      id: currentSlot.id ?? Date.now(),
       day: parseInt(currentSlot.day),
       class: parseInt(currentSlot.class),
       startTime: currentSlot.startTime,
@@ -205,7 +230,9 @@ const WeeklyCalendar = () => {
       teacher: currentSlot.teacher,
       room: currentSlot.room,
       color: currentSlot.color,
-      type: currentSlot.type
+      type: currentSlot.type,
+      disciplina_id: disciplinaSelecionada?.id,
+      docente_id: docenteSelecionado ? `${disciplinaSelecionada?.id}-${docenteSelecionado.nome}` : undefined
     };
 
     setSlots(prev => 
@@ -241,6 +268,50 @@ const WeeklyCalendar = () => {
     }
     return options;
   };
+
+
+// Buscar disciplinas quando o componente montar
+  useEffect(() => {
+    const fetchDisciplinas = async () => {
+      setLoadingDisciplinas(true);
+      try {
+        const response = await fetch(
+          `https://dsdeisi.pythonanywhere.com/api/horarios/horarios/${horario_id}/disciplinas`
+        );
+        const data = await response.json();
+        // Garante que data seja um array, mesmo se a API retornar null/undefined
+        setDisciplinas(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error('Erro ao buscar disciplinas:', error);
+        setDisciplinas([]); // Garante array vazio em caso de erro
+      } finally {
+        setLoadingDisciplinas(false);
+      }
+    };
+
+    fetchDisciplinas();
+  }, [horario_id]);
+
+  // Atualizar lista de docentes quando a disciplina mudar
+  useEffect(() => {
+    if (currentSlot.subject) {
+      const disciplinaSelecionada = disciplinas.find(
+        d => d.nome === currentSlot.subject
+      );
+      if (disciplinaSelecionada) {
+        setDocentesDisciplina(disciplinaSelecionada.docentes);
+        // Resetar professor selecionado quando mudar disciplina
+        setCurrentSlot(prev => ({
+          ...prev,
+          teacher: '',
+          type: 'Teórica' // Resetar tipo também
+        }));
+      }
+    } else {
+      setDocentesDisciplina([]);
+    }
+  }, [currentSlot.subject, disciplinas]);
+
 
   const handleClassSlotClick = (  day: number, classId: number, e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -383,26 +454,59 @@ const WeeklyCalendar = () => {
 
               <div className={styles.formGroup}>
                 <label htmlFor="slot-subject">Disciplina</label>
-                <input
-                  type="text"
-                  id="slot-subject"
-                  name="subject"
-                  value={currentSlot.subject}
-                  onChange={handleInputChange}
-                  required
-                />
+                <select
+  id="slot-subject"
+  name="subject"
+  value={currentSlot.subject}
+  onChange={handleInputChange}
+  required
+  disabled={loadingDisciplinas}
+>
+  <option value="">Selecione uma disciplina</option>
+  {Array.isArray(disciplinas) && disciplinas.map(disciplina => (
+    <option key={disciplina.id} value={disciplina.nome}>
+      {disciplina.nome}
+    </option>
+  ))}
+</select>
+                {loadingDisciplinas && <span>Carregando disciplinas...</span>}
               </div>
 
               <div className={styles.formGroup}>
                 <label htmlFor="slot-teacher">Professor</label>
-                <input
-                  type="text"
+                <select
                   id="slot-teacher"
                   name="teacher"
                   value={currentSlot.teacher}
                   onChange={handleInputChange}
                   required
-                />
+                  disabled={!currentSlot.subject || docentesDisciplina.length === 0}
+                >
+                  <option value="">Selecione um professor</option>
+                  {docentesDisciplina.map((docente, index) => (
+                    <option key={index} value={docente.nome}>
+                      {docente.nome}
+                    </option>
+                  ))}
+                </select>
+                {currentSlot.subject && docentesDisciplina.length === 0 && (
+                  <span>Nenhum professor disponível para esta disciplina</span>
+                )}
+              </div>
+
+              <div className={styles.formGroup}>
+                <label htmlFor="slot-type">Tipo de aula</label>
+                <select
+                  id="slot-type"
+                  name="type"
+                  value={currentSlot.type}
+                  onChange={handleInputChange}
+                  required
+                  disabled={!currentSlot.subject || !currentSlot.teacher}
+                >
+                  <option value="Teórica">Teórica</option>
+                  <option value="Prática">Prática</option>
+                </select>
               </div>
 
               <div className={styles.formGroup}>
@@ -417,19 +521,7 @@ const WeeklyCalendar = () => {
                 />
               </div>
 
-              <div className={styles.formGroup}>
-                <label htmlFor="slot-type">Tipo de aula</label>
-                <select
-                  id="slot-type"
-                  name="type"
-                  value={currentSlot.type}
-                  onChange={handleInputChange}
-                  required
-                >
-                  <option value="Teórica">Teórica</option>
-                  <option value="Prática">Prática</option>
-                </select>
-              </div>
+              
 
               <div className={styles.formGroup}>
                 <label htmlFor="slot-color">Cor</label>

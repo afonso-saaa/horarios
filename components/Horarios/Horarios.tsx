@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import SelectFromAPI from "@/components/SelectFromAPI/SelectFromAPI";
 import DisciplinaCard from "@/components/DisciplinaCard/DisciplinaCard";
 import AulaCard from "@/components/AulaCard/AulaCard"; 
+import CalendarioSemanal from '@/components/CalendarioSemanal/CalendarioSemanal'
 
 type Docente = {
   nome: string;
@@ -188,6 +189,12 @@ export default function Page() {
           <p className="text-gray-500">Nenhuma aula encontrada.</p>
         )}
       </section>
+
+      {selectedOption &&
+        <CalendarioSemanal 
+          horario_id={Number(selectedOption.id)}
+        ></CalendarioSemanal>
+      }
 
     </div>
   );
