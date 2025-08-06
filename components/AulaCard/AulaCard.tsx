@@ -1,4 +1,4 @@
-type AulaCardProps = {
+interface AulaCardProps {
   disciplina: string;
   tipo: string;  // "T" ou "P"
   docente: string;

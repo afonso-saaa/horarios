@@ -18,15 +18,30 @@ interface Option {
   raw: RawItem;
 }
 
-interface SelectFromAPIProps {
+interface SelectHorarioProps {
   endpoint: string;
   onSelect: (value: Option | null) => void;
 }
 
-export default function SelectFromAPI({ endpoint, onSelect }: SelectFromAPIProps) {
+export default function SelectHorario({ endpoint, onSelect }: SelectHorarioProps) {
+  
+  //
+  // A. Gestão de estados
   const [options, setOptions] = useState<Option[]>([]);
   const [selectedId, setSelectedId] = useState<string>("");
 
+  //
+  // E. Handlers
+  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    setSelectedId(value);
+
+    const selectedOption = options.find((opt) => opt.id.toString() === value) || null;
+    onSelect(selectedOption);
+  };
+
+  //
+  // F. Efeitos
   useEffect(() => {
     async function fetchOptions() {
       try {
@@ -47,14 +62,9 @@ export default function SelectFromAPI({ endpoint, onSelect }: SelectFromAPIProps
     fetchOptions();
   }, [endpoint]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value;
-    setSelectedId(value);
 
-    const selectedOption = options.find((opt) => opt.id.toString() === value) || null;
-    onSelect(selectedOption);
-  };
-
+  //
+  // G. Renderização
   return (
     <select
       value={selectedId}

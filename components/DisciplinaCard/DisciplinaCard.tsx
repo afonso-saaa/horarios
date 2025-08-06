@@ -1,24 +1,25 @@
-type Docente = {
+interface Docente {
   nome: string;
   horas_teoricas: number;
   horas_praticas: number;
 };
 
-type Disciplina = {
+interface Disciplina {
   id: number;
   nome: string;
   semestre: number;
   horas_teoricas: number;
   horas_praticas: number;
   docentes: Docente[];
+  cor: string;
 };
 
 export default function DisciplinaCard({ disciplina }: { disciplina: Disciplina }) {
   return (
     <div className="border rounded-xl p-4 shadow-sm bg-gray-50">
-      <h3 className="text-lg font-bold">{disciplina.nome}</h3>
+      <h3  style={{ color: disciplina.cor }} className="text-lg font-bold">{disciplina.nome}</h3>
 
-      <p className="text-sm text-gray-600">
+      <p className="text-sm">
         {disciplina.horas_teoricas > 0 && (
           <span className="font-semibold">
             Teórica: {disciplina.horas_teoricas}h

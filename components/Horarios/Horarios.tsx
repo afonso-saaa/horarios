@@ -1,26 +1,30 @@
 "use client";
-import { useState, useEffect } from "react";
-import SelectFromAPI from "@/components/SelectFromAPI/SelectFromAPI";
-import DisciplinaCard from "@/components/DisciplinaCard/DisciplinaCard";
-import AulaCard from "@/components/AulaCard/AulaCard"; 
-import CalendarioSemanal from '@/components/CalendarioSemanal/CalendarioSemanal'
 
-type Docente = {
+import { useState } from "react";
+import useSWR from "swr";
+
+import SelectHorario from "@/components/SelectHorario/SelectHorario";
+import DisciplinaCard from "@/components/DisciplinaCard/DisciplinaCard";
+import AulaCard from "@/components/AulaCard/AulaCard";
+import CalendarioSemanal from "@/components/CalendarioSemanal/CalendarioSemanal";
+
+interface Docente {
   nome: string;
   horas_teoricas: number;
   horas_praticas: number;
 };
 
-type Disciplina = {
+interface Disciplina {
   id: number;
   nome: string;
   semestre: number;
   horas_teoricas: number;
   horas_praticas: number;
   docentes: Docente[];
+  cor: string;
 };
 
-type Aula = {
+interface Aula {
   id: number;
   disciplina_id: number;
   docente_id: number;
@@ -51,84 +55,72 @@ interface Option {
   };
 }
 
+//
+// Função fetcher para SWR
+const fetcher = (url: string) => fetch(url).then((res) => {
+  if (!res.ok) throw new Error("Erro ao buscar dados");
+  return res.json();
+});
+
+//
+// Gerar cor simples para cada disciplina
+const gerarCorDisciplina = (id: number) => {
+  const hue = (id * 137) % 360; // 137 é um número primo para dispersar cores
+  return `hsl(${hue}, 80%, 50%)`;
+};
+
 export default function Page() {
+
+  //
+  // A. Gestão de estados
   const [selectedOption, setSelectedOption] = useState<Option | null>(null);
+  const horarioId = selectedOption?.id ?? null;
 
-  const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
-  const [loadingDisciplinas, setLoadingDisciplinas] = useState<boolean>(false);
+  //
+  // B. Requisições (Fetch) SWR para obter dados
+  const {
+    data: disciplinasRaw,
+    isLoading: loadingDisciplinas,
+    error: erroDisciplinas,
+  } = useSWR<Disciplina[]>(
+    horarioId
+      ? `https://dsdeisi.pythonanywhere.com/api/horarios/horarios/${horarioId}/disciplinas`
+      : null,
+    fetcher
+  );
 
-  const [aulas, setAulas] = useState<Aula[]>([]);
-  const [loadingAulas, setLoadingAulas] = useState<boolean>(false);
-
-  useEffect(() => {
-    if (!selectedOption) {
-      setDisciplinas([]);
-      return;
-    }
-
-    const fetchDisciplinas = async () => {
-      setLoadingDisciplinas(true);
-      try {
-        const response = await fetch(
-          `https://dsdeisi.pythonanywhere.com/api/horarios/horarios/${selectedOption.id}/disciplinas`
-        );
-        if (!response.ok) throw new Error("Erro ao carregar disciplinas");
-        const data: Disciplina[] = await response.json();
-
-        const sortedData = data.map((disciplina) => ({
-          ...disciplina,
-          docentes: [...disciplina.docentes].sort((a, b) => {
-            if (a.horas_teoricas > 0 && b.horas_teoricas === 0) return -1;
-            if (a.horas_teoricas === 0 && b.horas_teoricas > 0) return 1;
-            return a.nome.localeCompare(b.nome, "pt", { sensitivity: "base" });
-          }),
-        }));
-
-        setDisciplinas(sortedData);
-      } catch (error) {
-        console.error(error);
-        setDisciplinas([]);
-      } finally {
-        setLoadingDisciplinas(false);
-      }
-    };
-
-    fetchDisciplinas();
-  }, [selectedOption]);
+  const {
+    data: aulas,
+    isLoading: loadingAulas,
+    error: erroAulas,
+  } = useSWR<Aula[]>(
+    horarioId
+      ? `https://dsdeisi.pythonanywhere.com/api/horarios/horarios/${horarioId}/aulas`
+      : null,
+    fetcher
+  );
 
 
-  useEffect(() => {
-    if (!selectedOption) {
-      setAulas([]);
-      return;
-    }
-
-    const fetchAulas = async () => {
-      setLoadingAulas(true);
-      try {
-        const response = await fetch(
-          `https://dsdeisi.pythonanywhere.com/api/horarios/horarios/${selectedOption.id}/aulas`
-        );
-        if (!response.ok) throw new Error("Erro ao carregar aulas");
-        const data: Aula[] = await response.json();
-        setAulas(data);
-      } catch (error) {
-        console.error(error);
-        setAulas([]);
-      } finally {
-        setLoadingAulas(false);
-      }
-    };
-
-    fetchAulas();
-  }, [selectedOption]);
+  //
+  // C. Processamento dos dados recebidos
+  const disciplinas = (disciplinasRaw ?? []).map((disciplina) => ({
+    ...disciplina,
+    cor: gerarCorDisciplina(disciplina.id),
+    docentes: [...disciplina.docentes].sort((a, b) => {
+      if (a.horas_teoricas > 0 && b.horas_teoricas === 0) return -1;
+      if (a.horas_teoricas === 0 && b.horas_teoricas > 0) return 1;
+      return a.nome.localeCompare(b.nome, "pt", { sensitivity: "base" });
+    }),
+  }));
 
 
+  //
+  // D. Renderização do componente
   return (
     <div className="p-4">
       <h2 className="text-xl mb-2 flex row gap-3 items-center">
         <div className="font-bold">Horário:</div>
-        <SelectFromAPI
+        <SelectHorario
           endpoint="https://dsdeisi.pythonanywhere.com/api/horarios/horarios"
           onSelect={(option) => setSelectedOption(option)}
         />
@@ -148,7 +140,12 @@ export default function Page() {
       <section>
         <h3 className="mt-4 mb-2 text-lg font-semibold">Disciplinas</h3>
 
-        {loadingDisciplinas && <p className="text-gray-500">A carregar disciplinas...</p>}
+        {loadingDisciplinas && (
+          <p className="text-gray-500">A carregar disciplinas...</p>
+        )}
+        {erroDisciplinas && (
+          <p className="text-red-500">Erro ao carregar disciplinas.</p>
+        )}
 
         {!loadingDisciplinas && disciplinas.length > 0 && (
           <div className="space-y-4">
@@ -158,17 +155,22 @@ export default function Page() {
           </div>
         )}
 
-        {!loadingDisciplinas && selectedOption && disciplinas.length === 0 && (
-          <p className="text-gray-500">Nenhuma disciplina encontrada.</p>
-        )}
+        {!loadingDisciplinas &&
+          selectedOption &&
+          disciplinas.length === 0 && (
+            <p className="text-gray-500">Nenhuma disciplina encontrada.</p>
+          )}
       </section>
 
       <section>
         <h3 className="mt-8 mb-2 text-lg font-semibold">Aulas</h3>
 
         {loadingAulas && <p className="text-gray-500">A carregar aulas...</p>}
+        {erroAulas && (
+          <p className="text-red-500">Erro ao carregar aulas.</p>
+        )}
 
-        {!loadingAulas && aulas.length > 0 && (
+        {!loadingAulas && aulas && aulas.length > 0 && (
           <div className="space-y-4">
             {aulas.map((aula) => (
               <AulaCard
@@ -185,17 +187,17 @@ export default function Page() {
           </div>
         )}
 
-        {!loadingAulas && selectedOption && aulas.length === 0 && (
-          <p className="text-gray-500">Nenhuma aula encontrada.</p>
-        )}
+        {!loadingAulas &&
+          selectedOption &&
+          aulas &&
+          aulas.length === 0 && (
+            <p className="text-gray-500">Nenhuma aula encontrada.</p>
+          )}
       </section>
 
-      {selectedOption &&
-        <CalendarioSemanal 
-          horario_id={Number(selectedOption.id)}
-        ></CalendarioSemanal>
-      }
-
+      {selectedOption && (
+        <CalendarioSemanal horario_id={Number(selectedOption.id)} />
+      )}
     </div>
   );
 }
