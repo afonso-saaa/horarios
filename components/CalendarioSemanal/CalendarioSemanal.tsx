@@ -62,6 +62,23 @@ interface SlotForm {
   type: string;
 }
 
+interface AulaAPI {
+  id: number;
+  horario_id: number;
+  turma_id: number;
+  disciplina_id: number;
+  disciplina: string;
+  docente_id: number;
+  docente: string;
+  sala_id: number;
+  sala: string;
+  tipo: string;
+  dia_semana: number;
+  hora_inicio: string;
+  duracao: number;
+  cor: string;
+}
+
 //
 // Gerar cor simples para cada disciplina
 const gerarCorDisciplina = (id: number) => {
@@ -163,7 +180,7 @@ const WeeklyCalendar = ({ horario_id }: { horario_id: number }) => {
 
 
   // Converter aula da API para Slot
-  const convertAulaToSlot = (aula: any): Slot => {
+  const convertAulaToSlot = (aula: AulaAPI): Slot => {
       return {
       id: aula.id,
       horario_id: aula.horario_id,
@@ -178,7 +195,7 @@ const WeeklyCalendar = ({ horario_id }: { horario_id: number }) => {
       dia_semana: aula.dia_semana,
       hora_inicio: aula.hora_inicio,
       duracao: aula.duracao,
-      cor: gerarCorDisciplina(aula.disciplina.id),
+      cor: gerarCorDisciplina(aula.disciplina_id),
     };
   };
 
