@@ -15,8 +15,8 @@ spec:
     spec:
       containers:
         - name: horarios
-          image: localhost/horarios:latest
-          imagePullPolicy: Never
+          image: ghcr.io/afonso-saaa/horarios:1.0.0
+          imagePullPolicy: Always
           ports:
             - containerPort: 3000
           env:
