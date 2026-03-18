@@ -46,4 +46,4 @@ jobs:
           helm upgrade --install horarios ./helm/horarios -n deisi \
             --set image.repository=ghcr.io/afonso-saaa/horarios \
             --set image.tag=${{ github.sha }} \
-            --force
+            --force-replace
