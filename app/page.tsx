@@ -60,7 +60,7 @@ export default function Page() {
           href="/cursos"
           className="bg-red-500 text-white px-6 py-3 rounded-lg shadow hover:bg-red-600 transition-colors"
         >
-          Curso
+          Curso Test 
         </a>
         <a
           href="/disciplinas"
