@@ -13,6 +13,8 @@ spec:
       labels:
         app: horarios
     spec:
+      imagePullSecrets:
+        - name: ghcr-secret
       containers:
         - name: horarios
           image: ghcr.io/afonso-saaa/horarios:1.0.0
