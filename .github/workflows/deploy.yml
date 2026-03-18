@@ -1,0 +1,48 @@
+name: Deploy Horarios to K3s
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: afonso-saaa
+          password: ${{ secrets.GHCR_TOKEN }}
+
+      - name: Build Docker image
+        run: |
+          docker build -t ghcr.io/afonso-saaa/horarios:${{ github.sha }} .
+
+      - name: Push Docker image
+        run: |
+          docker push ghcr.io/afonso-saaa/horarios:${{ github.sha }}
+
+      - name: Set up kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG }}" > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+
+      - name: Deploy with Helm
+        run: |
+          helm upgrade --install horarios ./helm/horarios -n deisi \
+            --set image.repository=ghcr.io/afonso-saaa/horarios \
+            --set image.tag=${{ github.sha }}
