@@ -58,9 +58,9 @@ export default function Page() {
       <div className="flex flex-col sm:flex-row gap-4 mb-10">
         <a
           href="/cursos"
-          className="bg-red-500 text-white px-6 py-3 rounded-lg shadow hover:bg-red-600 transition-colors"
+          className="bg-blue-600 text-white px-6 py-3 rounded-lg shadow hover:bg-blue-700 transition-colors"
         >
-          Curso Test 
+          Curso
         </a>
         <a
           href="/disciplinas"
